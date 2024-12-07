@@ -1,0 +1,275 @@
+CREATE SCHEMA IF NOT EXISTS UNIVERSITY_MANAGEMENT;
+USE UNIVERSITY_MANAGEMENT;
+
+CREATE TABLE
+	IF NOT EXISTS DEPARTMENT(
+		DepartmentID INT PRIMARY KEY AUTO_INCREMENT,
+		name VARCHAR(255) UNIQUE NOT NULL,
+		CreatedTime DATE
+	);
+CREATE TABLE
+	IF NOT EXISTS SECTION(
+		SectionID VARCHAR(255),
+		Year INT NOT NULL,
+		Semester ENUM(
+			'1',
+            '2',
+            '3'
+        ) NOT NULL,
+		PRIMARY KEY (SectionID, Year)
+	);
+CREATE TABLE
+	IF NOT EXISTS PERSON(
+		PersonID INT PRIMARY KEY AUTO_INCREMENT,
+		StartedDay DATE,
+		Email VARCHAR(255) UNIQUE NOT NULL,
+		Status ENUM(
+			'In_progress',
+			'Expelled',
+			'Graduate'
+		),
+		FirstName VARCHAR(255) NOT NULL,
+		LastName VARCHAR(255) NOT NULL,
+		PhoneNumber VARCHAR(11) NOT NULL,
+		Gender VARCHAR(255),
+		DateOfBirth DATE,
+		Age INT,
+		CHECK (LENGTH(PhoneNumber) IN (10,11)),
+		CHECK (Gender in ('Male', 'Female')),
+		CHECK (FirstName REGEXP '^[A-Za-z]+$'),
+		CHECK (LastName REGEXP '^[A-Za-z]+$'),
+		CHECK (Email LIKE '%@hcmut.edu.vn')
+	);
+CREATE TABLE
+	IF NOT EXISTS LECTURER(
+		LecturerID INT PRIMARY KEY,
+		DepartmentID INT,
+		AcademicQualification VARCHAR (255),
+		FOREIGN KEY (DepartmentID) REFERENCES DEPARTMENT(DepartmentID)
+			ON UPDATE CASCADE,
+		FOREIGN KEY(LecturerID) REFERENCES PERSON(PersonID)
+			ON DELETE CASCADE ON UPDATE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS STUDENT(
+		StudentID INT PRIMARY KEY,
+		SocialWork INT,
+		DepartmentID INT,
+		FOREIGN KEY (DepartmentID) REFERENCES DEPARTMENT(DepartmentID)
+			ON UPDATE CASCADE,
+		FOREIGN KEY(StudentID) REFERENCES PERSON(PersonID)
+			ON DELETE CASCADE ON UPDATE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS SCHOLARSHIP(
+		ScholarshipID INT PRIMARY KEY AUTO_INCREMENT,
+		CreatedTime DATE,
+		Name VARCHAR(255) UNIQUE NOT NULL,
+		Issuer VARCHAR(255),
+		Price INT,
+		Number INT
+	);
+CREATE TABLE
+	IF NOT EXISTS COURSE (
+		CourseID VARCHAR(255) PRIMARY KEY,
+		Credit INT,
+		Name VARCHAR(255) UNIQUE NOT NULL,
+		QuizPercentage REAL,
+		MidPercentage REAL,
+		FinalPercentage REAL,
+		DepartmentID INT,
+		FOREIGN KEY (DepartmentID) REFERENCES DEPARTMENT(DepartmentID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		CHECK(Credit > 0 AND Credit < 7),
+        CHECK (CourseID REGEXP '^[A-Z]{2}[0-9]{4}$'),
+        CHECK (QuizPercentage >= 0.0 AND QuizPercentage <= 1.0),
+		CHECK (MidPercentage >= 0.0 AND MidPercentage <= 1.0),
+        CHECK (FinalPercentage >= 0.0 AND FinalPercentage <= 1.0)
+	);
+CREATE TABLE
+	IF NOT EXISTS CLASS (
+		ID INT AUTO_INCREMENT PRIMARY KEY,
+		Identifier VARCHAR (255),
+		SectionID VARCHAR (255),
+		CourseID VARCHAR(255),
+        DateOfWeek ENUM  (
+			'Monday',
+            'Tuesday',
+            'Wednesday',
+            'Thursday',
+            'Friday',
+            'Saturday',
+            'Sunday'
+        ) NOT NULL,
+		Time TIME NOT NULL,
+		Room VARCHAR(255),
+		FOREIGN KEY (SectionID) REFERENCES SECTION(SectionID)
+			ON DELETE CASCADE,
+		FOREIGN KEY (CourseID) REFERENCES COURSE(CourseID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		CHECK (Room REGEXP '^[A-Z][0-9]+-[0-9]{3}$')
+	);
+CREATE TABLE
+	IF NOT EXISTS RESEARCH (
+		ResearchID INT PRIMARY KEY AUTO_INCREMENT,
+		DepartmentID INT,
+		Name VARCHAR(255),
+		StartDate DATE NOT NULL,
+		PublishDate DATE,
+		FOREIGN KEY (DepartmentID) REFERENCES DEPARTMENT(DepartmentID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT CHECK(
+			PublishDate = NULL
+            OR PublishDate > StartDate
+       )
+	);
+CREATE TABLE
+	IF NOT EXISTS ACTIVITY(
+		ActivityID INT PRIMARY KEY AUTO_INCREMENT,
+		Name VARCHAR(255),
+		CreatedTime DATE,
+		Number INT
+	);
+CREATE TABLE
+	IF NOT EXISTS StudentActivity(
+		ActivityID INT,
+		StudentID INT,
+		FOREIGN KEY (ActivityID) REFERENCES ACTIVITY (ActivityID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (StudentID) REFERENCES STUDENT (StudentID)
+			ON UPDATE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS LecturerActivity(
+		ActivityID INT,
+		LecturerID INT,
+		FOREIGN KEY (ActivityID) REFERENCES ACTIVITY (ActivityID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (LecturerID) REFERENCES LECTURER (LecturerID)
+			ON UPDATE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS STUDY(
+		StudentID INT,
+		ClassID INT,
+		Pass BOOL,
+		FinalScore REAL,
+		QuizScore REAL,
+		MidtermScore REAL,
+		GPA REAL,
+		PRIMARY KEY (StudentID, ClassID),
+		FOREIGN KEY (StudentID) REFERENCES STUDENT (StudentID)
+			ON UPDATE CASCADE ON DELETE CASCADE,
+		FOREIGN KEY (ClassID) REFERENCES CLASS (ID)
+			ON DELETE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS AWARD_TO(
+		ScholarshipID INT,
+		StudentID INT,
+		SectionID VARCHAR (255),
+		PRIMARY KEY (ScholarshipID, StudentID),
+		FOREIGN KEY (ScholarshipID) REFERENCES SCHOLARSHIP (ScholarshipID)
+			ON DELETE CASCADE,
+		FOREIGN KEY (StudentID) REFERENCES STUDENT(StudentID)
+			ON DELETE CASCADE,
+		FOREIGN KEY (SectionID) REFERENCES SECTION(SectionID)
+			ON DELETE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS MENTORING(
+		MentorID INT,
+		MenteeID INT,
+		CourseID VARCHAR(255),
+		SectionID VARCHAR (255),
+		Number INT,
+		Salary INT,
+		PRIMARY KEY (MentorID, MenteeID, CourseID, SectionID),
+		FOREIGN KEY (MentorID) REFERENCES STUDENT (StudentID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (MenteeID) REFERENCES STUDENT (StudentID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (CourseID) REFERENCES COURSE(CourseID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (SectionID) REFERENCES SECTION(SectionID)
+			ON DELETE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS WorksON(
+		LecturerID INT,
+		ResearchID INT,
+		PRIMARY KEY(LecturerID, ResearchID),
+		FOREIGN KEY (LecturerID) REFERENCES LECTURER (LecturerID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (ResearchID) REFERENCES RESEARCH (ResearchID)
+			ON DELETE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS ASSIST(
+		StudentID INT,
+		ResearchID INT,
+		PRIMARY KEY(StudentID, ResearchID),
+		FOREIGN KEY (StudentID) REFERENCES STUDENT (StudentID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (ResearchID) REFERENCES RESEARCH (ResearchID)
+			ON DELETE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS StudentParticipation(
+		StudentID INT,
+		ActivityID INT,
+		SectionID VARCHAR (255),
+		Status ENUM(
+			'GOOD',
+            'AVERAGE',
+            'BAD'
+        ),
+		NumberReceived INT,
+		Primary Key (StudentID, ActivityID, SectionID),
+		FOREIGN KEY (StudentID) REFERENCES STUDENT (StudentID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (ActivityID) REFERENCES ACTIVITY (ActivityID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (SectionID) REFERENCES SECTION(SectionID)
+			ON DELETE CASCADE ON UPDATE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS LecturerParticipation(
+		LecturerID INT,
+		ActivityID INT,
+		SectionID VARCHAR (255),
+		Primary Key (LecturerID, ActivityID, SectionID),
+		FOREIGN KEY (LecturerID) REFERENCES LECTURER (LecturerID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (SectionID) REFERENCES SECTION(SectionID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (ActivityID) REFERENCES ACTIVITY (ActivityID)
+			ON DELETE CASCADE ON UPDATE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS HasScore(
+		StudentID INT NOT NULL,
+		CourseID VARCHAR(255) NOT NULL,
+		GPA REAL,
+		FOREIGN KEY (StudentID) REFERENCES STUDENT (StudentID)
+			ON DELETE CASCADE,
+		FOREIGN KEY (CourseID) REFERENCES COURSE(CourseID)
+			ON UPDATE CASCADE
+	);
+CREATE TABLE
+	IF NOT EXISTS InSection(
+		StudentID INT,
+		SectionID VARCHAR (255),
+        SectionYear INT NOT NULL,
+		Status ENUM(
+			'On_leave',
+            'Studying',
+            'Graduated',
+            'Warning'
+        ),
+		PRIMARY KEY (StudentID, SectionID, SectionYear),
+		FOREIGN KEY (StudentID) REFERENCES STUDENT (StudentID)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+		FOREIGN KEY (SectionID, SectionYear) REFERENCES SECTION(SectionID, Year)
+			ON DELETE CASCADE ON UPDATE CASCADE
+	);
